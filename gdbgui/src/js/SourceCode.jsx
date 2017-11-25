@@ -301,13 +301,13 @@ class SourceCode extends React.Component {
         }
 
         // add "view more" buttons if necessary
-        if(start_linenum_to_render < start_linenum){
+        if(start_linenum_to_render > start_linenum){
             body.unshift(this.get_view_more_tr(fullname, start_linenum_to_render -1))
         }else if(start_linenum !== 1){
             body.unshift(this.get_view_more_tr(fullname, start_linenum -1))
         }
 
-        if(end_linenum_to_render > end_linenum){
+        if(end_linenum_to_render < end_linenum){
             body.push(this.get_view_more_tr(fullname, end_linenum_to_render + 1))
         }else if(end_linenum < num_lines_in_file){
             body.push(this.get_view_more_tr(fullname, line_num_being_rendered))

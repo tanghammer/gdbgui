@@ -397,9 +397,10 @@ def read_file():
         try:
             last_modified = os.path.getmtime(path)
             with open(path, 'r') as f:
-                code = f.read()
+                raw_source_code_list = f.read().split('\n')
+                num_lines_in_file = len(raw_source_code_list)
+                raw_source_code_lines_of_interest = raw_source_code_list[(start_line - 1):(end_line)]
 
-            formatter = htmllistformatter.HtmlListFormatter(lineseparator='')  # Don't add newlines after each line
             try:
                 lexer = get_lexer_for_filename(path)
             except Exception:
@@ -407,20 +408,22 @@ def read_file():
 
             if lexer and highlight:
                 highlighted = True
-                tokens = lexer.get_tokens(code)  # convert string into tokens
+                # convert string into tokens
+                tokens = lexer.get_tokens('\n'.join(raw_source_code_lines_of_interest))
                 # format tokens into nice, marked up list of html
+                formatter = htmllistformatter.HtmlListFormatter(lineseparator='')  # Don't add newlines after each line
                 source_code = formatter.get_marked_up_list(tokens)
             else:
                 highlighted = False
-                source_code = code.split('\n')  # turn long string into a list
+                source_code = raw_source_code_lines_of_interest
 
-            return jsonify({'source_code_array': source_code[(start_line - 1):(end_line)],
+            return jsonify({'source_code_array': source_code,
                             'path': path,
                             'last_modified_unix_sec': last_modified,
                             'highlighted': highlighted,
                             'start_line': start_line,
                             'end_line': end_line,
-                            'num_lines_in_file': len(source_code)})
+                            'num_lines_in_file': num_lines_in_file})
         except Exception as e:
             return client_error({'message': '%s' % e})
 

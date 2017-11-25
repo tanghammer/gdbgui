@@ -56,26 +56,33 @@ const FileOps = {
             paused_frame_fullname = paused_frame.fullname
         }
 
-        let paused_on_line = parseInt(store.get('line_of_source_to_flash'))
-        if(!paused_on_line){
-            paused_on_line = 1
-        }
-
-        let start_line = Math.max(Math.floor(paused_on_line - store.get('max_lines_of_code_to_fetch') / 2), 1)
-        , end_line = Math.ceil(start_line + store.get('max_lines_of_code_to_fetch'))
-
+        let paused_on_line
         if (rendering_user_selection){
             fullname = store.get('fullname_to_render')
             is_paused = false
             paused_addr = null
+            paused_on_line = parseInt(store.get('line_of_source_to_flash'))
         }else {  // paused_frame_or_user_selection === 'paused_frame'){
             is_paused = store.get('inferior_program') === constants.inferior_states.paused
             paused_addr = store.get('current_assembly_address')
             fullname = paused_frame_fullname
+            paused_on_line = parseInt(store.get('line_of_source_to_flash'))
         }
 
         let assembly_is_cached = FileOps.assembly_is_cached(fullname)
         , file_is_missing = FileOps.is_missing_file(fullname)
+        if(!paused_on_line){
+            paused_on_line = 1
+        }
+        let start_line = Math.max(Math.floor(paused_on_line - store.get('max_lines_of_code_to_fetch') / 2), 1)
+        , end_line = Math.ceil(start_line + store.get('max_lines_of_code_to_fetch'))
+        , source_file_obj = FileOps.get_source_file_obj_from_cache(fullname)
+        if(source_file_obj){
+            end_line = Math.min(end_line, FileOps.get_num_lines_in_file(fullname) - 1) // don't go past the end of the line TODO figure out off-by-one here
+        }
+
+        paused_on_line = Math.min(paused_on_line, end_line)
+
 
         FileOps.update_source_code_state(fullname, start_line, paused_on_line, end_line, assembly_is_cached, file_is_missing, is_paused, paused_addr)
     },
@@ -87,7 +94,8 @@ const FileOps = {
             // we have file cached. We may have assembly cached too.
             store.set('source_code_state', assembly_is_cached ? states.ASSM_AND_SOURCE_CACHED: states.SOURCE_CACHED)
             store.set('source_linenum_to_display_start', start_line)
-            store.set('source_linenum_to_display_end', Math.min(end_line, FileOps.get_num_lines_in_file(fullname)))
+            end_line = Math.min(end_line, FileOps.get_num_lines_in_file(fullname))
+            store.set('source_linenum_to_display_end', end_line)
 
         }else if (fullname && !file_is_missing ){
             // we don't have file cached, and it is not known to be missing on the file system, so try to get it
@@ -418,12 +426,12 @@ const FileOps = {
                 cached_file.assembly = Object.assign(cached_file.assembly, assembly_to_save)
 
                 let max_assm_line = Math.max(Object.keys(cached_file.assembly))
-
-                if(max_assm_line > cached_file.source_code_array.length){
-                    cached_file.source_code_array[max_assm_line] = ''
+                , max_source_line = Math.max(Object.keys(cached_file.source_code_obj))
+                if(max_assm_line > max_source_line){
+                    cached_file.source_code_obj[max_assm_line] = ''
                     for(let i = 0; i < max_assm_line; i++){
-                        if(!cached_file.source_code_array[i]){
-                            cached_file.source_code_array[i] = ''
+                        if(!cached_file.source_code_obj[i]){
+                            cached_file.source_code_obj[i] = ''
                         }
                     }
                 }
