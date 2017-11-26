@@ -111,10 +111,6 @@ const Actions = {
             file.assembly = {}
         }
         store.set('cached_source_files', cached_source_files)
-    },
-    update_max_lines_of_code_to_fetch(new_value){
-        store.set('max_lines_of_code_to_fetch', new_value)
-        localStorage.setItem('max_lines_of_code_to_fetch', JSON.stringify(new_value))
     }
 
 }
